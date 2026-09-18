@@ -17,8 +17,8 @@ export interface Config {
   model: string | null;
   /** Where the bot keeps its session file, generated workspace and audit log. */
   stateDir: string;
-  /** Extra lines appended to the agent's system prompt, for house style. */
-  instructions?: string;
+  /** A markdown file appended to the agent's system prompt, for house style. Read on every turn. */
+  instructionsFile: string;
   /** Replies longer than this are sent back to the agent once to be shortened. */
   maxReplyWords: number;
   slack: {
@@ -74,14 +74,16 @@ export function loadConfig(): Config {
 
   const model = raw.model == null ? null : assertString(raw, "model");
   const stateDir = resolve(expandHome(typeof raw.stateDir === "string" ? raw.stateDir : "~/.agent-slack-bot"));
-  const instructions = raw.instructions == null || raw.instructions === "" ? undefined : assertString(raw, "instructions");
+  const instructionsFile = resolve(
+    expandHome(typeof raw.instructionsFile === "string" && raw.instructionsFile ? raw.instructionsFile : join(stateDir, "instructions.md")),
+  );
   const maxReplyWords = raw.maxReplyWords == null ? 80 : Number(raw.maxReplyWords);
   if (!Number.isInteger(maxReplyWords) || maxReplyWords < 10) {
     throw new Error('config.json: "maxReplyWords" must be an integer of at least 10');
   }
 
   return {
-    ...(instructions ? { instructions } : {}),
+    instructionsFile,
     maxReplyWords,
     project,
     owner: assertString(raw, "owner"),

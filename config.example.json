@@ -6,6 +6,6 @@
   "adapter": "claude",
   "model": null,
   "stateDir": "~/.agent-slack-bot",
-  "instructions": "",
+  "instructionsFile": "~/.agent-slack-bot/instructions.md",
   "maxReplyWords": 80
 }

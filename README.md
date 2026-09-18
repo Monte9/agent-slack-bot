@@ -43,10 +43,13 @@ Requirements: Node 22+, pnpm, and a Claude Code login (`claude login`) on the ma
    Token) and `SLACK_APP_TOKEN` (Basic Information → App-Level Tokens, scope `connections:write`).
    `slack app settings` opens the right page.
 3. **Config.** Copy `config.example.json` to `config.json`. Set `project` to your repo, `owner` to your
-   Slack user id, and `allowlist` to who may talk to the bot. `instructions` is an optional string
-   appended to the agent's system prompt for house style. Slack is instant messaging, so replies over
+   Slack user id, and `allowlist` to who may talk to the bot. Slack is instant messaging, so replies over
    `maxReplyWords` (default 80) are sent back to the agent once to be shortened.
-4. **Run.**
+4. **House style**, optional. Write `~/.agent-slack-bot/instructions.md` (or point `instructionsFile`
+   elsewhere): link formats, URL patterns for your tools, anything about voice. It is appended to the
+   agent's system prompt and re-read on every turn, so edits apply without a restart. The generic rules,
+   such as "link what you cite", are in code; this file is for what is specific to your instance.
+5. **Run.**
 
    ```bash
    pnpm install

@@ -1,3 +1,4 @@
+import { existsSync, readFileSync } from "node:fs";
 import type { AgentAdapter, AgentEvent, RunResult } from "../agent/types.js";
 import type { Config } from "../config.js";
 import { auditPathFor, createGate } from "../policy/gate.js";
@@ -32,9 +33,18 @@ function systemPromptAppend(config: Omit<Config, "slack">, botName: string): str
     "If detail matters, give the one-line takeaway and offer to expand on request.",
     "Never repeat an earlier reply. Asked the same thing again, give the short version or say what changed.",
     "Use Slack-friendly markdown: bold sparingly, a short bullet list at most, code in fences, no headers.",
+    "Link what you cite, as markdown links with a concise label: a ticket as `RB-1234: short title`,",
+    "a PR as `#3140: short title`, a dashboard, report or doc by its name. Use URLs that tool results give you.",
+    "When you checked a dashboard, page or document, end with its link so the reader can look themselves.",
   ];
-  if (config.instructions) lines.push(config.instructions);
+  const instructions = readInstructions(config.instructionsFile);
+  if (instructions) lines.push("", instructions);
   return lines.join("\n");
+}
+
+/** Read on every turn, so edits to the file apply without a restart. */
+function readInstructions(path: string): string {
+  return existsSync(path) ? readFileSync(path, "utf8").trim() : "";
 }
 
 /** Owns the session, the queue and the scope. Slack and the CLI both drive it. */
