@@ -60,6 +60,10 @@ EOF
 
   write_icon "$identity" || echo "no icon (avatar unavailable); continuing" >&2
   sign_app
+  # Login Items matches the background item to its bundle through Launch Services at the moment
+  # the agent is first registered, and never again; an unknown bundle leaves it filed under the
+  # signer's name for good. Register before loading.
+  /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$app"
 }
 
 # The bot's Slack avatar becomes the app icon: download, scale to the icon sizes, pack as icns.
