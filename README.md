@@ -17,6 +17,8 @@ backed by your own `claude login`. The core does not care which runtime answers.
   it. `@bot new` starts over. `@bot status` prints the id so you can resume the same session from a
   terminal after stopping the bot.
 - **Serial by design.** Mentions queue and run in order. The second person hears "queued behind 1".
+- **Visible progress.** Your message gets 👀 when picked up and ✅ or ❌ when done. A placeholder reply
+  shows what the agent is doing right now and becomes the answer when it finishes.
 - **Shared-scope memory.** The session runs in a generated workspace whose memory directory holds
   symlinks to only the memory files matching `memoryShare` (by default `project_*` and `reference_*`).
   Files that don't match are never loaded, so no prompt can reveal them. Memory is read-only from Slack.
@@ -27,11 +29,13 @@ backed by your own `claude login`. The core does not care which runtime answers.
 
 Requirements: Node 22+, pnpm, and a Claude Code login (`claude login`) on the machine that runs the bot.
 
-1. **Create the Slack app** from [`manifest.json`](manifest.json). Rename it first if you like.
-   Either way works:
+1. **Create the Slack app** from [`manifest.json`](manifest.json). To give your instance its own name
+   and description, copy `manifest.local.example.json` to `manifest.local.json` (gitignored); it is
+   merged over the committed manifest. Either way works:
    - With the [Slack CLI](https://docs.slack.dev/tools/slack-cli): `slack login`, then
-     `slack app install --environment deployed` from this directory. The CLI reads the manifest through
-     `.slack/hooks.json` and records the app id in `.slack/apps.json` (gitignored).
+     `slack app install --environment deployed` from this directory. The CLI reads the merged manifest
+     through `.slack/hooks.json` and records the app id in `.slack/apps.json` (gitignored). Rerun the
+     install after changing scopes; the bot token keeps its value and gains the scope.
    - In the browser: at [api.slack.com/apps](https://api.slack.com/apps) choose *Create New App → From a
      manifest*, paste the file, and install the app to your workspace.
 2. **Tokens.** Copy `.env.example` to `.env`. Fill `SLACK_BOT_TOKEN` (OAuth & Permissions → Bot User OAuth
@@ -39,8 +43,10 @@ Requirements: Node 22+, pnpm, and a Claude Code login (`claude login`) on the ma
    `slack app settings` opens the right page.
 3. **Config.** Copy `config.example.json` to `config.json`. Set `project` to your repo, `owner` to your
    Slack user id, and `allowlist` to who may talk to the bot. `instructions` is an optional string
-   appended to the agent's system prompt for house style. Replies are capped at about 50 words by
-   default, because Slack is instant messaging.
+   appended to the agent's system prompt for house style. Slack is instant messaging, so replies over
+   `maxReplyWords` (default 80) are sent back to the agent once to be shortened. `workingEmoji` is an
+   optional emoji for the placeholder while it works, such as a workspace's animated `:loading:`;
+   without it the placeholder cycles clock faces.
 4. **Run.**
 
    ```bash

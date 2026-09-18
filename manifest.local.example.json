@@ -1,0 +1,11 @@
+{
+  "display_information": {
+    "name": "mybot",
+    "description": "What this instance is for."
+  },
+  "features": {
+    "bot_user": {
+      "display_name": "mybot"
+    }
+  }
+}

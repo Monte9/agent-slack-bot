@@ -1,5 +1,11 @@
 const SLACK_LIMIT = 3800;
 
+/** Words outside code fences. Code is not prose and should not count against the cap. */
+export function wordCount(text: string): number {
+  const prose = text.replace(/```[\s\S]*?```/g, " ");
+  return prose.split(/\s+/).filter((w) => /\w/.test(w)).length;
+}
+
 /** Convert the markdown an agent writes into Slack mrkdwn. Code blocks pass through untouched. */
 export function toMrkdwn(markdown: string): string {
   const parts = markdown.split(/(```[\s\S]*?```)/g);

@@ -19,6 +19,10 @@ export interface Config {
   stateDir: string;
   /** Extra lines appended to the agent's system prompt, for house style. */
   instructions?: string;
+  /** Replies longer than this are sent back to the agent once to be shortened. */
+  maxReplyWords: number;
+  /** Emoji shown while working, such as a workspace's animated `:loading:`. Default: rotating clock faces. */
+  workingEmoji?: string;
   slack: {
     botToken: string;
     appToken: string;
@@ -73,9 +77,16 @@ export function loadConfig(): Config {
   const model = raw.model == null ? null : assertString(raw, "model");
   const stateDir = resolve(expandHome(typeof raw.stateDir === "string" ? raw.stateDir : "~/.agent-slack-bot"));
   const instructions = raw.instructions == null || raw.instructions === "" ? undefined : assertString(raw, "instructions");
+  const workingEmoji = raw.workingEmoji == null || raw.workingEmoji === "" ? undefined : assertString(raw, "workingEmoji");
+  const maxReplyWords = raw.maxReplyWords == null ? 80 : Number(raw.maxReplyWords);
+  if (!Number.isInteger(maxReplyWords) || maxReplyWords < 10) {
+    throw new Error('config.json: "maxReplyWords" must be an integer of at least 10');
+  }
 
   return {
     ...(instructions ? { instructions } : {}),
+    ...(workingEmoji ? { workingEmoji } : {}),
+    maxReplyWords,
     project,
     owner: assertString(raw, "owner"),
     allowlist: assertStringArray(raw, "allowlist"),

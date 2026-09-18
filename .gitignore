@@ -1,6 +1,7 @@
 node_modules/
 .env
 /config.json
+/manifest.local.json
 .slack/apps*.json
 .slack/cache/
 *.log
