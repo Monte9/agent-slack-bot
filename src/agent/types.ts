@@ -27,12 +27,32 @@ export interface RunRequest {
   onEvent: (event: AgentEvent) => void;
 }
 
+export interface RunStats {
+  durationMs: number;
+  /** Cost at API list prices. On a subscription it is a proxy for usage, not a charge. */
+  costUsd: number;
+  toolCalls: number;
+  inputTokens: number;
+  outputTokens: number;
+}
+
 export interface RunResult {
   sessionId: string;
   text: string;
   isError: boolean;
   /** True when the requested session could not be resumed and a fresh one was started. */
   rotated: boolean;
+  stats: RunStats;
+}
+
+export function addStats(a: RunStats, b: RunStats): RunStats {
+  return {
+    durationMs: a.durationMs + b.durationMs,
+    costUsd: a.costUsd + b.costUsd,
+    toolCalls: a.toolCalls + b.toolCalls,
+    inputTokens: a.inputTokens + b.inputTokens,
+    outputTokens: a.outputTokens + b.outputTokens,
+  };
 }
 
 export interface AgentAdapter {

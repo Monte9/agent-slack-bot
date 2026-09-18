@@ -1,5 +1,5 @@
 import { query, type Options } from "@anthropic-ai/claude-agent-sdk";
-import type { AgentAdapter, RunRequest, RunResult } from "./types.js";
+import type { AgentAdapter, RunRequest, RunResult, RunStats } from "./types.js";
 
 const RESUME_FAILED = /no conversation found|session.*not found|could not resume/i;
 
@@ -58,6 +58,7 @@ export function createClaudeAdapter(options: { model: string | null }): AgentAda
     let collected = "";
     let finalText: string | undefined;
     let isError = false;
+    const stats: RunStats = { durationMs: 0, costUsd: 0, toolCalls: 0, inputTokens: 0, outputTokens: 0 };
 
     for await (const message of query({ prompt: request.prompt, options: sdkOptions })) {
       if (message.type === "system" && message.subtype === "init") {
@@ -74,12 +75,18 @@ export function createClaudeAdapter(options: { model: string | null }): AgentAda
             collected += block.text;
             request.onEvent({ type: "text", text: block.text });
           } else if (block.type === "tool_use") {
+            stats.toolCalls += 1;
             const input = (block.input ?? {}) as Record<string, unknown>;
             request.onEvent({ type: "tool", name: block.name, summary: summarizeInput(block.name, input) });
           }
         }
       } else if (message.type === "result") {
         resolvedSessionId = message.session_id;
+        stats.durationMs = message.duration_ms;
+        stats.costUsd = message.total_cost_usd;
+        stats.inputTokens =
+          message.usage.input_tokens + (message.usage.cache_read_input_tokens ?? 0) + (message.usage.cache_creation_input_tokens ?? 0);
+        stats.outputTokens = message.usage.output_tokens;
         if (message.subtype === "success") {
           finalText = message.result;
           isError = message.is_error;
@@ -95,6 +102,7 @@ export function createClaudeAdapter(options: { model: string | null }): AgentAda
       text: finalText ?? collected,
       isError,
       rotated: false,
+      stats,
     };
   }
 

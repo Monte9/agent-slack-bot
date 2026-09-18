@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import type { AgentAdapter, AgentEvent, RunResult } from "../agent/types.js";
+import { addStats, type AgentAdapter, type AgentEvent, type RunResult } from "../agent/types.js";
 import type { Config } from "../config.js";
 import { auditPathFor, createGate } from "../policy/gate.js";
 import { wordCount } from "./format.js";
@@ -157,7 +157,7 @@ export class TurnRunner {
           sessionId: result.sessionId,
         });
         if (!fixed.isError && fixed.text.trim()) {
-          result = { ...fixed, rotated: result.rotated };
+          result = { ...fixed, rotated: result.rotated, stats: addStats(result.stats, fixed.stats) };
           revised = true;
         }
       }

@@ -19,7 +19,9 @@ backed by your own `claude login`. The core does not care which runtime answers.
 - **Serial by design.** Mentions queue and run in order. The second person hears "queued behind 1".
 - **Visible progress.** Your message gets 👀 when picked up and ✅ or ❌ when done. A placeholder reply
   shows what the agent is doing right now, with an emoji per activity (📖 reading, 💻 running, 📊 Mixpanel,
-  ✂️ revising), and becomes the answer when it finishes.
+  ✂️ revising), and becomes the answer when it finishes. A small grey line under each answer gives the
+  time, tool calls, tokens and cost at API list prices (on a subscription that is a usage proxy, not a
+  charge).
 - **Shared-scope memory.** The session runs in a generated workspace whose memory directory holds
   symlinks to only the memory files matching `memoryShare` (by default `project_*` and `reference_*`).
   Files that don't match are never loaded, so no prompt can reveal them. Memory is read-only from Slack.

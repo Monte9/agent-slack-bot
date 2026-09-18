@@ -1,7 +1,8 @@
 import { App, LogLevel } from "@slack/bolt";
+import type { KnownBlock } from "@slack/types";
 import type { AgentEvent } from "../agent/types.js";
 import type { Config } from "../config.js";
-import { chunk, toMrkdwn } from "./format.js";
+import { chunk, statsLine, toMrkdwn } from "./format.js";
 import { statusText } from "./status.js";
 import type { TurnRunner } from "./turn.js";
 
@@ -32,6 +33,13 @@ interface MentionEvent {
 
 function basename(path: string): string {
   return path.split("/").filter(Boolean).pop() ?? path;
+}
+
+/** A reply section, with the small grey stats line under it when this is the last part. */
+function replyBlocks(text: string, footer?: string): KnownBlock[] {
+  const blocks: KnownBlock[] = [{ type: "section", text: { type: "mrkdwn", text } }];
+  if (footer) blocks.push({ type: "context", elements: [{ type: "mrkdwn", text: footer }] });
+  return blocks;
 }
 
 /** An emoji and one short, human line for the placeholder, from an agent event. */
@@ -165,12 +173,29 @@ export async function startSlack(config: Config, runner: TurnRunner, adapterName
 
       const parts = chunk(toMrkdwn(outcome.text || "(no reply)"));
       const prefix = outcome.rotated ? "_The previous session could not be resumed, so this is a fresh one._\n\n" : "";
-      await update(`${prefix}${parts[0] ?? ""}`);
-      for (const part of parts.slice(1)) await reply(part);
+      const stats = { ...outcome.stats, durationMs: Date.now() - startedAt };
+      const footer = statsLine(stats);
+      // The first message carries the answer plus a context block; overflow goes as plain replies.
+      const first = `${prefix}${parts[0] ?? ""}`;
+      await client.chat.update({
+        channel: mention.channel,
+        ts: placeholderTs,
+        text: first,
+        blocks: replyBlocks(first, parts.length === 1 ? footer : undefined),
+      });
+      for (const [i, part] of parts.slice(1).entries()) {
+        const last = i === parts.length - 2;
+        await client.chat.postMessage({
+          channel: mention.channel,
+          thread_ts: threadTs,
+          text: part,
+          blocks: replyBlocks(part, last ? footer : undefined),
+        });
+      }
       await react("eyes", true);
       await react(outcome.isError ? "x" : "white_check_mark");
       console.log(
-        `[turn ${outcome.session.turns}] ${Math.round((Date.now() - startedAt) / 1000)}s, ${outcome.text.length} chars in ${parts.length} message(s)` +
+        `[turn ${outcome.session.turns}] ${footer}, ${outcome.text.length} chars in ${parts.length} message(s)` +
           `${outcome.revised ? ", revised" : ""}${outcome.isError ? ", error" : ""}${outcome.rotated ? ", fresh session" : ""}, session ${outcome.sessionId}`,
       );
     } catch (error) {
