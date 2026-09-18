@@ -14,12 +14,82 @@ plist="$HOME/Library/LaunchAgents/$label.plist"
 state_dir="${STATE_DIR:-$HOME/.agent-slack-bot}"
 log="$state_dir/bot.log"
 domain="gui/$(id -u)"
+app_name="agent-slack-bot"
+app="$HOME/Applications/$app_name.app"
 
-write_plist() {
-  local pnpm_bin node_bin
+# A minimal app bundle around the start command. System Settings > Login Items shows the
+# bundle's name and icon instead of "pnpm"; AssociatedBundleIdentifiers in the launchd
+# plist is what ties the background item to it.
+write_app() {
+  local pnpm_bin node_bin display identity
   pnpm_bin="$(command -v pnpm)"
   node_bin="$(command -v node)"
-  mkdir -p "$(dirname "$plist")" "$state_dir"
+  mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources" "$state_dir"
+
+  identity="$(node scripts/bot-identity.mjs 2>/dev/null || echo '{}')"
+  display="$(node -e 'const i=JSON.parse(process.argv[1]);process.stdout.write(i.name||"")' "$identity")"
+  [ -n "$display" ] || display="$app_name"
+
+  cat > "$app/Contents/MacOS/$app_name" <<EOF
+#!/bin/bash
+export PATH="$(dirname "$node_bin"):$(dirname "$pnpm_bin"):$HOME/.local/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin"
+export HOME="$HOME"
+cd "$(pwd)"
+exec "$pnpm_bin" start
+EOF
+  chmod +x "$app/Contents/MacOS/$app_name"
+
+  cat > "$app/Contents/Info.plist" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleIdentifier</key><string>$label</string>
+  <key>CFBundleName</key><string>$app_name</string>
+  <key>CFBundleDisplayName</key><string>$display</string>
+  <key>CFBundleExecutable</key><string>$app_name</string>
+  <key>CFBundleIconFile</key><string>icon</string>
+  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleShortVersionString</key><string>$(node -p 'require("./package.json").version')</string>
+  <key>CFBundleVersion</key><string>$(date +%Y%m%d%H%M)</string>
+  <key>LSUIElement</key><true/>
+  <key>LSMinimumSystemVersion</key><string>13.0</string>
+</dict>
+</plist>
+EOF
+
+  write_icon "$identity" || echo "no icon (avatar unavailable); continuing" >&2
+  sign_app
+}
+
+# The bot's Slack avatar becomes the app icon: download, scale to the icon sizes, pack as icns.
+write_icon() {
+  local url tmp size
+  url="$(node -e 'const i=JSON.parse(process.argv[1]);process.stdout.write(i.avatar||"")' "$1")"
+  [ -n "$url" ] || return 1
+  tmp="$(mktemp -d)"
+  curl -fsSL "$url" -o "$tmp/avatar" || return 1
+  mkdir -p "$tmp/icon.iconset"
+  for size in 16 32 128 256 512; do
+    sips -s format png -z "$size" "$size" "$tmp/avatar" --out "$tmp/icon.iconset/icon_${size}x${size}.png" >/dev/null
+    sips -s format png -z "$((size * 2))" "$((size * 2))" "$tmp/avatar" --out "$tmp/icon.iconset/icon_${size}x${size}@2x.png" >/dev/null
+  done
+  iconutil -c icns "$tmp/icon.iconset" -o "$app/Contents/Resources/icon.icns"
+  rm -rf "$tmp"
+}
+
+# Developer ID if present, else an Apple Development certificate, else ad hoc.
+sign_app() {
+  local identity
+  identity="${CODESIGN_IDENTITY:-$(security find-identity -v -p codesigning 2>/dev/null \
+    | grep -oE '"(Developer ID Application|Apple Development)[^"]*"' | sort | head -1 | tr -d '"')}"
+  codesign --force --deep --sign "${identity:--}" "$app" 2>/dev/null
+  echo "signed as ${identity:-ad hoc}"
+}
+
+write_plist() {
+  write_app
+  mkdir -p "$(dirname "$plist")"
   cat > "$plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -27,13 +97,10 @@ write_plist() {
 <dict>
   <key>Label</key><string>$label</string>
   <key>ProgramArguments</key>
-  <array><string>$pnpm_bin</string><string>start</string></array>
+  <array><string>$app/Contents/MacOS/$app_name</string></array>
+  <key>AssociatedBundleIdentifiers</key>
+  <array><string>$label</string></array>
   <key>WorkingDirectory</key><string>$(pwd)</string>
-  <key>EnvironmentVariables</key>
-  <dict>
-    <key>PATH</key><string>$(dirname "$node_bin"):$(dirname "$pnpm_bin"):$HOME/.local/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin</string>
-    <key>HOME</key><string>$HOME</string>
-  </dict>
   <key>RunAtLoad</key><true/>
   <key>KeepAlive</key><true/>
   <key>ThrottleInterval</key><integer>10</integer>
@@ -68,7 +135,8 @@ case "${1:-status}" in
   uninstall)
     unload
     rm -f "$plist"
-    echo "removed $label"
+    rm -rf "$app"
+    echo "removed $label and $app"
     ;;
   start)
     [ -f "$plist" ] || { echo "not installed; run: pnpm service install" >&2; exit 1; }
