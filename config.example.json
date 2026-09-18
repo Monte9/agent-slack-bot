@@ -1,0 +1,9 @@
+{
+  "project": "/absolute/path/to/your/repo",
+  "owner": "U0000000000",
+  "allowlist": ["U0000000000"],
+  "memoryShare": ["project_*", "reference_*"],
+  "adapter": "claude",
+  "model": null,
+  "stateDir": "~/.agent-slack-bot"
+}
