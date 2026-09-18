@@ -1,5 +1,7 @@
 import { App, LogLevel } from "@slack/bolt";
 import type { KnownBlock } from "@slack/types";
+import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import type { AgentEvent } from "../agent/types.js";
 import type { Config } from "../config.js";
 import { chunk, statsLine, toMrkdwn } from "./format.js";
@@ -33,6 +35,40 @@ interface MentionEvent {
 
 function basename(path: string): string {
   return path.split("/").filter(Boolean).pop() ?? path;
+}
+
+interface Inflight {
+  channel: string;
+  ts: string;
+  mentionTs: string;
+}
+
+/**
+ * The placeholder of the turn being worked on, on disk. A process that dies mid-turn
+ * (a crash, a restart, a file save under `pnpm dev`) leaves it saying "thinking" forever;
+ * the next process finds it here and says what happened.
+ */
+class InflightMarker {
+  private readonly path: string;
+
+  constructor(stateDir: string) {
+    this.path = join(stateDir, "inflight.json");
+  }
+
+  set(value: Inflight): void {
+    writeFileSync(this.path, JSON.stringify(value));
+  }
+
+  clear(): void {
+    rmSync(this.path, { force: true });
+  }
+
+  take(): Inflight | undefined {
+    if (!existsSync(this.path)) return undefined;
+    const value = JSON.parse(readFileSync(this.path, "utf8")) as Inflight;
+    this.clear();
+    return value;
+  }
 }
 
 /** A reply section, with the small grey stats line under it when this is the last part. */
@@ -96,6 +132,21 @@ export async function startSlack(config: Config, runner: TurnRunner, adapterName
   const botName = auth.user ?? "bot";
   const mentionPattern = new RegExp(`<@${botUserId}>`, "g");
 
+  const inflight = new InflightMarker(config.stateDir);
+  const orphan = inflight.take();
+  if (orphan) {
+    await app.client.chat
+      .update({
+        channel: orphan.channel,
+        ts: orphan.ts,
+        text: "I was restarted before I could answer this one. Mention me again if it still matters.",
+        blocks: [],
+      })
+      .catch(() => undefined);
+    await app.client.reactions.remove({ channel: orphan.channel, timestamp: orphan.mentionTs, name: "eyes" }).catch(() => undefined);
+    console.log(`[recovered] orphaned placeholder ${orphan.ts} in ${orphan.channel}`);
+  }
+
   app.event("app_mention", async ({ event, client }) => {
     const mention = event as MentionEvent;
     if (mention.bot_id || !mention.user) return;
@@ -153,6 +204,7 @@ export async function startSlack(config: Config, runner: TurnRunner, adapterName
     });
     const placeholder = await client.chat.postMessage({ channel: mention.channel, thread_ts: threadTs, ...progress() });
     const placeholderTs = placeholder.ts ?? "";
+    inflight.set({ channel: mention.channel, ts: placeholderTs, mentionTs: mention.ts });
     const update = (body: string) => client.chat.update({ channel: mention.channel, ts: placeholderTs, text: body });
 
     // A live clock: one edit every two seconds, which stays under Slack's ~50 chat.update calls a minute.
@@ -194,6 +246,7 @@ export async function startSlack(config: Config, runner: TurnRunner, adapterName
           blocks: replyBlocks(part, last ? footer : undefined),
         });
       }
+      inflight.clear();
       await react("eyes", true);
       await react(outcome.isError ? "x" : "white_check_mark");
       console.log(
@@ -202,6 +255,7 @@ export async function startSlack(config: Config, runner: TurnRunner, adapterName
       );
     } catch (error) {
       clearInterval(ticker);
+      inflight.clear();
       const message = error instanceof Error ? error.message : String(error);
       console.error(`[turn failed] ${message}`);
       await update(`Something went wrong: \`${message.slice(0, 500)}\``);
