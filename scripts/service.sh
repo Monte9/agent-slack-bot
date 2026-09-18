@@ -15,20 +15,20 @@ state_dir="${STATE_DIR:-$HOME/.agent-slack-bot}"
 log="$state_dir/bot.log"
 domain="gui/$(id -u)"
 app_name="agent-slack-bot"
+# What System Settings > Login Items calls the background item.
+app_display="${APP_DISPLAY_NAME:-Slack Agent}"
 app="$HOME/Applications/$app_name.app"
 
 # A minimal app bundle around the start command. System Settings > Login Items shows the
 # bundle's name and icon instead of "pnpm"; AssociatedBundleIdentifiers in the launchd
 # plist is what ties the background item to it.
 write_app() {
-  local pnpm_bin node_bin display identity
+  local pnpm_bin node_bin identity
   pnpm_bin="$(command -v pnpm)"
   node_bin="$(command -v node)"
   mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources" "$state_dir"
 
   identity="$(node scripts/bot-identity.mjs 2>/dev/null || echo '{}')"
-  display="$(node -e 'const i=JSON.parse(process.argv[1]);process.stdout.write(i.name||"")' "$identity")"
-  [ -n "$display" ] || display="$app_name"
 
   cat > "$app/Contents/MacOS/$app_name" <<EOF
 #!/bin/bash
@@ -45,8 +45,8 @@ EOF
 <plist version="1.0">
 <dict>
   <key>CFBundleIdentifier</key><string>$label</string>
-  <key>CFBundleName</key><string>$app_name</string>
-  <key>CFBundleDisplayName</key><string>$display</string>
+  <key>CFBundleName</key><string>$app_display</string>
+  <key>CFBundleDisplayName</key><string>$app_display</string>
   <key>CFBundleExecutable</key><string>$app_name</string>
   <key>CFBundleIconFile</key><string>icon</string>
   <key>CFBundlePackageType</key><string>APPL</string>

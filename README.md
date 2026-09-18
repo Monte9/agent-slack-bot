@@ -70,9 +70,9 @@ pnpm service install
 ```
 
 That writes a launchd user agent and loads it: the bot starts now and at every login, and restarts
-if it dies. It also builds a small app bundle at `~/Applications/agent-slack-bot.app`, named after
-the bot and using its Slack avatar as the icon, so System Settings › Login Items shows the bot
-rather than "pnpm". The bundle is signed with a Developer ID or Apple Development certificate when
+if it dies. It also builds a small app bundle at `~/Applications/agent-slack-bot.app`, shown in
+System Settings › Login Items as "Slack Agent" (override with `APP_DISPLAY_NAME`) with the bot's
+Slack avatar as its icon, rather than as "pnpm". The bundle is signed with a Developer ID or Apple Development certificate when
 one is in the keychain, ad hoc otherwise. `pnpm service status` shows whether it is loaded, its pid and last exit code, and the
 log tail; `stop`, `start`, `restart`, `logs` and `uninstall` do what they say. The log is
 `~/.agent-slack-bot/bot.log`. While changing the bot, `pnpm service stop` then `pnpm dev`, and
