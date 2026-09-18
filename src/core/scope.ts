@@ -1,6 +1,7 @@
+import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 /**
  * Claude Code keys a project's memory and transcripts on its absolute path,
@@ -14,6 +15,22 @@ export function projectKey(absolutePath: string): string {
 
 export function memoryDirFor(absolutePath: string): string {
   return join(homedir(), ".claude", "projects", projectKey(absolutePath), "memory");
+}
+
+/**
+ * Memory is kept at the main checkout's root and shared by every git worktree,
+ * so a project configured as a worktree must resolve to that root.
+ */
+export function memoryRootFor(project: string): string {
+  try {
+    const commonDir = execFileSync("git", ["-C", project, "rev-parse", "--path-format=absolute", "--git-common-dir"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+    return dirname(commonDir);
+  } catch {
+    return project;
+  }
 }
 
 function matcher(patterns: string[]): (name: string) => boolean {
@@ -61,7 +78,7 @@ export interface ScopeResult {
  */
 export function buildScope(options: { project: string; stateDir: string; share: string[] }): ScopeResult {
   const workspace = join(options.stateDir, "workspace");
-  const sourceMemory = memoryDirFor(options.project);
+  const sourceMemory = memoryDirFor(memoryRootFor(options.project));
   const targetMemory = memoryDirFor(workspace);
   const isShared = matcher(options.share);
 

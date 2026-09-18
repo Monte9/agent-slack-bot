@@ -1,7 +1,7 @@
 import type { AgentAdapter, AgentEvent, RunResult } from "../agent/types.js";
 import type { Config } from "../config.js";
 import { auditPathFor, createGate } from "../policy/gate.js";
-import { buildScope, memoryDirFor, type ScopeResult } from "./scope.js";
+import { buildScope, memoryDirFor, memoryRootFor, type ScopeResult } from "./scope.js";
 import { SerialQueue } from "./queue.js";
 import { SessionStore, type SessionRecord } from "./session-store.js";
 
@@ -72,7 +72,7 @@ export class TurnRunner {
       const gate = createGate({
         requester: request.requester,
         isOwner,
-        protectedPaths: [memoryDirFor(this.config.project), this.scope.memoryDir],
+        protectedPaths: [memoryDirFor(memoryRootFor(this.config.project)), this.scope.memoryDir],
         auditPath: auditPathFor(this.config.stateDir),
       });
       let model = this.store.read()?.model ?? "";
