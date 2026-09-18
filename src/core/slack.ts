@@ -6,7 +6,7 @@ import { chunk, statsLine, toMrkdwn } from "./format.js";
 import { statusText } from "./status.js";
 import type { TurnRunner } from "./turn.js";
 
-const PROGRESS_INTERVAL_MS = 3000;
+const PROGRESS_INTERVAL_MS = 2000;
 
 export interface Activity {
   emoji: string;
@@ -155,12 +155,8 @@ export async function startSlack(config: Config, runner: TurnRunner, adapterName
     const placeholderTs = placeholder.ts ?? "";
     const update = (body: string) => client.chat.update({ channel: mention.channel, ts: placeholderTs, text: body });
 
-    // Edit only when the activity changes, checked every few seconds to stay under Slack's edit rate limit.
-    let lastShown = `${activity.emoji} ${activity.text}`;
+    // A live clock: one edit every two seconds, which stays under Slack's ~50 chat.update calls a minute.
     const ticker = setInterval(() => {
-      const current = `${activity.emoji} ${activity.text}`;
-      if (current === lastShown) return;
-      lastShown = current;
       void client.chat.update({ channel: mention.channel, ts: placeholderTs, ...progress() }).catch(() => undefined);
     }, PROGRESS_INTERVAL_MS);
 
