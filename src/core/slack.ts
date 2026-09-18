@@ -155,8 +155,12 @@ export async function startSlack(config: Config, runner: TurnRunner, adapterName
     const placeholderTs = placeholder.ts ?? "";
     const update = (body: string) => client.chat.update({ channel: mention.channel, ts: placeholderTs, text: body });
 
-    // One edit every few seconds keeps the clock ticking and stays under Slack's edit rate limit.
+    // Edit only when the activity changes, checked every few seconds to stay under Slack's edit rate limit.
+    let lastShown = `${activity.emoji} ${activity.text}`;
     const ticker = setInterval(() => {
+      const current = `${activity.emoji} ${activity.text}`;
+      if (current === lastShown) return;
+      lastShown = current;
       void client.chat.update({ channel: mention.channel, ts: placeholderTs, ...progress() }).catch(() => undefined);
     }, PROGRESS_INTERVAL_MS);
 
