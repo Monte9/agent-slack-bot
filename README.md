@@ -63,6 +63,18 @@ Requirements: Node 22+, pnpm, and a Claude Code login (`claude login`) on the ma
    restarts on every source change, and the session resumes from disk, so there is never an old
    process serving stale code. A save mid-turn does cut that turn short.
 
+### Run it unattended (macOS)
+
+```bash
+pnpm service install
+```
+
+That writes a launchd user agent and loads it: the bot starts now and at every login, and restarts
+if it dies. `pnpm service status` shows whether it is loaded, its pid and last exit code, and the
+log tail; `stop`, `start`, `restart`, `logs` and `uninstall` do what they say. The log is
+`~/.agent-slack-bot/bot.log`. While changing the bot, `pnpm service stop` then `pnpm dev`, and
+`pnpm service start` when done, so two copies never run at once.
+
 ### Local checks without Slack
 
 ```bash

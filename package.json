@@ -13,6 +13,7 @@
     "start": "tsx src/index.ts",
     "dev": "tsx watch src/index.ts",
     "restart": "bash scripts/restart.sh",
+    "service": "bash scripts/service.sh",
     "ask": "tsx src/cli.ts ask",
     "scope": "tsx src/cli.ts scope",
     "status": "tsx src/cli.ts status",
