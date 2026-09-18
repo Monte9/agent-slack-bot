@@ -1,0 +1,28 @@
+{
+  "$comment": "Rules are checked top to bottom; the first match decides. Unmatched tools are allowed for everyone on the allowlist. `match` is a tool name with * wildcards, or Tool(argument*) to match a command prefix or file path. `allow` is nobody, owner or everyone.",
+  "rules": [
+    { "match": "mcp__claude_ai_Gmail__*", "allow": "nobody", "reason": "personal mail stays out of Slack" },
+    { "match": "mcp__claude_ai_Google_Calendar__*", "allow": "nobody", "reason": "personal calendar stays out of Slack" },
+    { "match": "mcp__claude_ai_Google_Drive__*", "allow": "nobody", "reason": "personal files stay out of Slack" },
+    { "match": "mcp__claude_ai_Slack__*", "allow": "nobody", "reason": "that connector posts as the owner; the bot has its own voice" },
+
+    { "match": "Bash(git push --force*)", "allow": "nobody", "reason": "no force pushes" },
+    { "match": "Bash(git push -f*)", "allow": "nobody", "reason": "no force pushes" },
+    { "match": "Bash(rm -rf*)", "allow": "nobody", "reason": "no recursive deletes" },
+    { "match": "Bash(firebase deploy*)", "allow": "nobody", "reason": "deploys happen from CI" },
+    { "match": "Bash(vercel*)", "allow": "nobody", "reason": "deploys happen from CI" },
+    { "match": "Edit(*/firebase/firestore.rules)", "allow": "nobody", "reason": "protected config" },
+    { "match": "Edit(*/firebase/storage.rules)", "allow": "nobody", "reason": "protected config" },
+    { "match": "Edit(*/firebase/firebase.json)", "allow": "nobody", "reason": "protected config" },
+
+    { "match": "Bash(git push*)", "allow": "owner", "reason": "pushing is the owner's call" },
+    { "match": "Bash(gh pr merge*)", "allow": "owner", "reason": "merging is the owner's call" },
+    { "match": "Bash(gh pr close*)", "allow": "owner", "reason": "closing a PR is the owner's call" },
+    { "match": "Bash(gh pr create*)", "allow": "owner", "reason": "opening a PR is the owner's call" },
+    { "match": "Bash(gh release*)", "allow": "owner", "reason": "releases are the owner's call" },
+    { "match": "mcp__claude_ai_Notion__notion-create-*", "allow": "owner", "reason": "Notion writes are the owner's call" },
+    { "match": "mcp__claude_ai_Notion__notion-update-*", "allow": "owner", "reason": "Notion writes are the owner's call" },
+    { "match": "mcp__claude_ai_Notion__notion-move-*", "allow": "owner", "reason": "Notion writes are the owner's call" },
+    { "match": "mcp__claude_ai_Notion__notion-duplicate-*", "allow": "owner", "reason": "Notion writes are the owner's call" }
+  ]
+}

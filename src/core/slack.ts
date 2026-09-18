@@ -84,9 +84,10 @@ export function describeActivity(event: Extract<AgentEvent, { type: "tool" | "ph
     return event.name === "revising" ? { emoji: "✂️", text: "revising the reply" } : { emoji: "🤔", text: "thinking" };
   }
   const { name, summary } = event;
-  const mcp = /^mcp__(?:claude_ai_)?([^_]+)__(.+)$/.exec(name);
+  const mcp = /^mcp__(.+?)__(.+)$/.exec(name);
   if (mcp) {
-    const [, server = "", tool = ""] = mcp;
+    const server = (mcp[1] ?? "").replace(/^claude_ai_/, "").replace(/_/g, " ");
+    const tool = mcp[2] ?? "";
     return {
       emoji: SERVER_EMOJI[server.toLowerCase()] ?? "🔌",
       text: `${server}: ${tool.replace(/[-_]+/g, " ").toLowerCase()}`,

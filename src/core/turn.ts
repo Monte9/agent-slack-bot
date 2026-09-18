@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { addStats, type AgentAdapter, type AgentEvent, type RunResult } from "../agent/types.js";
 import type { Config } from "../config.js";
-import { auditPathFor, createGate } from "../policy/gate.js";
+import { auditPathFor, createGate, describePolicy, loadPolicy, type Policy } from "../policy/gate.js";
 import { wordCount } from "./format.js";
 import { buildScope, memoryDirFor, memoryRootFor, type ScopeResult } from "./scope.js";
 import { SerialQueue } from "./queue.js";
@@ -24,8 +24,8 @@ export interface TurnOutcome extends RunResult {
 const SOURCE_TOOLS = new Set(["WebFetch", "WebSearch"]);
 
 function sourceOf(toolName: string): string | undefined {
-  const mcp = /^mcp__(?:claude_ai_)?([^_]+)__/.exec(toolName);
-  if (mcp) return mcp[1];
+  const mcp = /^mcp__(.+?)__/.exec(toolName);
+  if (mcp) return (mcp[1] ?? "").replace(/^claude_ai_/, "").replace(/_/g, " ");
   return SOURCE_TOOLS.has(toolName) ? "the web" : undefined;
 }
 
@@ -45,7 +45,7 @@ function reviewReply(text: string, sources: Set<string>, maxWords: number): stri
   return problems;
 }
 
-function systemPromptAppend(config: Omit<Config, "slack">, botName: string): string {
+function systemPromptAppend(config: Omit<Config, "slack">, botName: string, policy: Policy): string {
   const lines = [
     `You are @${botName}, a coding agent reached through Slack mentions. Every mention shares this one session.`,
     `The project is ${config.project}. Work inside it; this workspace directory only scopes your memory.`,
@@ -65,6 +65,8 @@ function systemPromptAppend(config: Omit<Config, "slack">, botName: string): str
     "a PR as `#3140: short title`, a report, page or doc by its name. Use URLs that tool results give you,",
     "so the reader can open the ticket, PR or report you are talking about.",
   ];
+  const policyText = describePolicy(policy);
+  if (policyText) lines.push("", policyText);
   const instructions = readInstructions(config.instructionsFile);
   if (instructions) lines.push("", instructions);
   return lines.join("\n");
@@ -116,9 +118,11 @@ export class TurnRunner {
   run(request: TurnRequest): Promise<TurnOutcome> {
     return this.queue.run(async () => {
       const isOwner = request.requester === this.config.owner;
+      const policy = loadPolicy(this.config.policyFile);
       const gate = createGate({
         requester: request.requester,
         isOwner,
+        policy,
         protectedPaths: [memoryDirFor(memoryRootFor(this.config.project)), this.scope.memoryDir],
         auditPath: auditPathFor(this.config.stateDir),
       });
@@ -135,7 +139,7 @@ export class TurnRunner {
       const base = {
         cwd: this.scope.workspace,
         additionalDirectories: [this.config.project],
-        systemPromptAppend: systemPromptAppend(this.config, this.botName),
+        systemPromptAppend: systemPromptAppend(this.config, this.botName, policy),
         gate,
         onEvent,
       };

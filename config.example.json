@@ -7,5 +7,6 @@
   "model": null,
   "stateDir": "~/.slack-agent",
   "instructionsFile": "~/.slack-agent/instructions.md",
+  "policyFile": "~/.slack-agent/policy.json",
   "maxReplyWords": 80
 }

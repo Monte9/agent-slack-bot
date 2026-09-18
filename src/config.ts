@@ -21,6 +21,8 @@ export interface Config {
   instructionsFile: string;
   /** Replies longer than this are sent back to the agent once to be shortened. */
   maxReplyWords: number;
+  /** The tool policy: who may use which tools. Read on every turn. See policy.example.json. */
+  policyFile: string;
   slack: {
     botToken: string;
     appToken: string;
@@ -77,6 +79,9 @@ export function loadConfig(): Config {
   const instructionsFile = resolve(
     expandHome(typeof raw.instructionsFile === "string" && raw.instructionsFile ? raw.instructionsFile : join(stateDir, "instructions.md")),
   );
+  const policyFile = resolve(
+    expandHome(typeof raw.policyFile === "string" && raw.policyFile ? raw.policyFile : join(stateDir, "policy.json")),
+  );
   const maxReplyWords = raw.maxReplyWords == null ? 80 : Number(raw.maxReplyWords);
   if (!Number.isInteger(maxReplyWords) || maxReplyWords < 10) {
     throw new Error('config.json: "maxReplyWords" must be an integer of at least 10');
@@ -84,6 +89,7 @@ export function loadConfig(): Config {
 
   return {
     instructionsFile,
+    policyFile,
     maxReplyWords,
     project,
     owner: assertString(raw, "owner"),

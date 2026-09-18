@@ -25,8 +25,23 @@ backed by your own `claude login`. The core does not care which runtime answers.
 - **Shared-scope memory.** The session runs in a generated workspace whose memory directory holds
   symlinks to only the memory files matching `memoryShare` (by default `project_*` and `reference_*`).
   Files that don't match are never loaded, so no prompt can reveal them. Memory is read-only from Slack.
-- **Allowlist and owner.** Only Slack users on the allowlist get answers. Privileged actions are the
-  owner's alone. Every denial is one line in `~/.slack-agent/audit.jsonl`.
+- **Allowlist and owner.** Only Slack users on the allowlist get answers. The sender id comes from the
+  Slack event, never from the message text.
+- **A tool policy, one file.** `~/.slack-agent/policy.json` is a list of rules, first match wins:
+
+  ```json
+  { "match": "mcp__claude_ai_Gmail__*", "allow": "nobody", "reason": "personal mail stays out of Slack" }
+  { "match": "Bash(gh pr merge*)",      "allow": "owner",  "reason": "merging is the owner's call" }
+  ```
+
+  `match` is a tool name with `*` wildcards, or `Tool(argument*)` for a command prefix or file path,
+  the same shape as Claude Code's own permission rules. `allow` is `nobody`, `owner` or `everyone`;
+  unmatched tools are allowed. Rules are enforced in a hook on every tool call, before any allow
+  rule the runtime has, and re-read every turn so edits apply without a restart. The agent sees the
+  rules in its system prompt, so it says what it cannot do instead of trying. Every denial and every
+  owner-only use is one line in `~/.slack-agent/audit.jsonl`. Start from
+  [`policy.example.json`](policy.example.json), which keeps personal connectors (Gmail, Calendar,
+  Drive, Slack-as-you) out entirely and reserves push, merge, release and Notion writes for the owner.
 
 ## Setup
 
