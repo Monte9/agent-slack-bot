@@ -58,7 +58,7 @@ function systemPromptAppend(config: Omit<Config, "slack">, botName: string): str
     "State a number as its distance from normal (3x normal, a 30-day low, back to baseline), not as a series.",
     "If detail matters, give the one-line takeaway and offer to expand on request.",
     "No em-dashes; use a colon, period, comma or parentheses.",
-    "Never repeat an earlier reply. Asked the same thing again, give the short version or say what changed.",
+    "Never paste an earlier reply. Asked the same thing again, check again and report what changed since, in the same shape.",
     "Use Slack-friendly markdown: bold sparingly, a short bullet list at most, code in fences, no headers.",
     "Link what you cite, as markdown links with a concise label: a ticket as `RB-1234: short title`,",
     "a PR as `#3140: short title`, a report, page or doc by its name. Use URLs that tool results give you,",
