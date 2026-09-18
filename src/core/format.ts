@@ -19,13 +19,17 @@ export function wordCount(text: string): number {
   return prose.split(/\s+/).filter((w) => /\w/.test(w)).length;
 }
 
-/** Convert the markdown an agent writes into Slack mrkdwn. Code blocks pass through untouched. */
+/**
+ * Convert the markdown an agent writes into Slack mrkdwn. Code blocks pass through untouched.
+ * Blank lines go too: Slack hides tall messages behind "Show more", and a blank line is a line.
+ */
 export function toMrkdwn(markdown: string): string {
   const parts = markdown.split(/(```[\s\S]*?```)/g);
   return parts
     .map((part, i) => {
       if (i % 2 === 1) return part;
       return part
+        .replace(/\n[ \t]*\n+/g, "\n")
         .replace(/^#{1,6}\s+(.+)$/gm, "*$1*")
         .replace(/\*\*(.+?)\*\*/g, "*$1*")
         .replace(/__(.+?)__/g, "_$1_")

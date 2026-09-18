@@ -60,6 +60,7 @@ function systemPromptAppend(config: Omit<Config, "slack">, botName: string): str
     "No em-dashes; use a colon, period, comma or parentheses.",
     "Never paste an earlier reply. Asked the same thing again, check again and report what changed since, in the same shape.",
     "Use Slack-friendly markdown: bold sparingly, a short bullet list at most, code in fences, no headers.",
+    "Slack hides tall messages behind Show more, so no preamble, no blank lines, and about six lines at most.",
     "Link what you cite, as markdown links with a concise label: a ticket as `RB-1234: short title`,",
     "a PR as `#3140: short title`, a report, page or doc by its name. Use URLs that tool results give you,",
     "so the reader can open the ticket, PR or report you are talking about.",

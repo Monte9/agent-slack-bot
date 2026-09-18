@@ -59,7 +59,9 @@ Requirements: Node 22+, pnpm, and a Claude Code login (`claude login`) on the ma
    pnpm start
    ```
 
-   Invite the bot to a channel and mention it.
+   Invite the bot to a channel and mention it. While changing the bot, run `pnpm dev` instead: it
+   restarts on every source change, and the session resumes from disk, so there is never an old
+   process serving stale code. A save mid-turn does cut that turn short.
 
 ### Local checks without Slack
 
