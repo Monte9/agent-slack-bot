@@ -56,8 +56,8 @@ function systemPromptAppend(config: Omit<Config, "slack">, botName: string): str
     "Never repeat an earlier reply. Asked the same thing again, give the short version or say what changed.",
     "Use Slack-friendly markdown: bold sparingly, a short bullet list at most, code in fences, no headers.",
     "Link what you cite, as markdown links with a concise label: a ticket as `RB-1234: short title`,",
-    "a PR as `#3140: short title`, a dashboard, report or doc by its name. Use URLs that tool results give you.",
-    "When you checked a dashboard, page or document, end with its link so the reader can look themselves.",
+    "a PR as `#3140: short title`, a report, page or doc by its name. Use URLs that tool results give you,",
+    "so the reader can open the ticket, PR or report you are talking about.",
   ];
   const instructions = readInstructions(config.instructionsFile);
   if (instructions) lines.push("", instructions);
