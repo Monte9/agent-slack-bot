@@ -7,6 +7,5 @@
   "model": null,
   "stateDir": "~/.agent-slack-bot",
   "instructions": "",
-  "maxReplyWords": 80,
-  "workingEmoji": ""
+  "maxReplyWords": 80
 }

@@ -108,6 +108,7 @@ export class TurnRunner {
       let condensed = false;
       const words = wordCount(result.text);
       if (!result.isError && words > this.config.maxReplyWords) {
+        onEvent({ type: "phase", name: "condensing" });
         const short = await this.adapter.run({
           ...base,
           prompt:

@@ -6,7 +6,20 @@ import { statusText } from "./status.js";
 import type { TurnRunner } from "./turn.js";
 
 const PROGRESS_INTERVAL_MS = 3000;
-const CLOCK_FRAMES = ["🕐", "🕑", "🕒", "🕓", "🕔", "🕕", "🕖", "🕗", "🕘", "🕙", "🕚", "🕛"];
+
+export interface Activity {
+  emoji: string;
+  text: string;
+}
+
+const SERVER_EMOJI: Record<string, string> = {
+  mixpanel: "📊",
+  notion: "📝",
+  github: "🐙",
+  slack: "💬",
+  vercel: "▲",
+  gmail: "📧",
+};
 
 interface MentionEvent {
   user?: string;
@@ -21,38 +34,44 @@ function basename(path: string): string {
   return path.split("/").filter(Boolean).pop() ?? path;
 }
 
-/** One short, human line for the placeholder, from a tool call. */
-export function describeActivity(event: Extract<AgentEvent, { type: "tool" }>): string {
+/** An emoji and one short, human line for the placeholder, from an agent event. */
+export function describeActivity(event: Extract<AgentEvent, { type: "tool" | "phase" }>): Activity {
+  if (event.type === "phase") {
+    return event.name === "condensing" ? { emoji: "✂️", text: "shortening the reply" } : { emoji: "🤔", text: "thinking" };
+  }
   const { name, summary } = event;
   const mcp = /^mcp__(?:claude_ai_)?([^_]+)__(.+)$/.exec(name);
   if (mcp) {
-    const [, server, tool] = mcp;
-    return `${server}: ${(tool ?? "").replace(/[-_]+/g, " ").toLowerCase()}`;
+    const [, server = "", tool = ""] = mcp;
+    return {
+      emoji: SERVER_EMOJI[server.toLowerCase()] ?? "🔌",
+      text: `${server}: ${tool.replace(/[-_]+/g, " ").toLowerCase()}`,
+    };
   }
   switch (name) {
     case "ToolSearch":
-      return "loading tools";
+      return { emoji: "🛠️", text: "loading tools" };
     case "Bash":
-      return `running \`${summary}\``;
+      return { emoji: "💻", text: `running \`${summary}\`` };
     case "Read":
-      return `reading ${basename(summary)}`;
+      return { emoji: "📖", text: `reading ${basename(summary)}` };
     case "Edit":
     case "Write":
     case "MultiEdit":
     case "NotebookEdit":
-      return `editing ${basename(summary)}`;
+      return { emoji: "✏️", text: `editing ${basename(summary)}` };
     case "Grep":
     case "Glob":
-      return `searching for ${summary}`;
+      return { emoji: "🔍", text: `searching for ${summary}` };
     case "WebFetch":
     case "WebSearch":
-      return "browsing";
+      return { emoji: "🌐", text: "browsing" };
     case "Agent":
-      return "delegating to a subagent";
+      return { emoji: "🤖", text: "delegating to a subagent" };
     case "Skill":
-      return `using the ${summary} skill`;
+      return { emoji: "🎯", text: `using the ${summary} skill` };
     default:
-      return name.toLowerCase();
+      return { emoji: "⚙️", text: name.toLowerCase() };
   }
 }
 
@@ -116,17 +135,18 @@ export async function startSlack(config: Config, runner: TurnRunner, adapterName
     console.log(`[mention] ${mention.user} in ${mention.channel} thread ${threadTs} (queue ${depth}): ${text.slice(0, 120)}`);
     await react("eyes");
 
-    let activity = depth > 0 ? `queued behind ${depth}, finishing the last one first` : "starting";
-    let frame = 0;
-    const spinner = () => config.workingEmoji ?? CLOCK_FRAMES[frame++ % CLOCK_FRAMES.length];
-    const placeholder = await reply(`${spinner()} ${activity}`);
+    let activity: Activity =
+      depth > 0 ? { emoji: "⏳", text: `queued behind ${depth}, finishing the last one first` } : { emoji: "🤔", text: "thinking" };
+    const render = () => `${activity.emoji} ${activity.text}`;
+    const placeholder = await reply(render());
     const placeholderTs = placeholder.ts ?? "";
     const update = (body: string) => client.chat.update({ channel: mention.channel, ts: placeholderTs, text: body });
 
-    let lastShown = "";
+    // Slack rate-limits edits, so the placeholder follows the activity at most every few seconds.
+    let lastShown = render();
     const ticker = setInterval(() => {
-      const body = `${spinner()} ${activity}`;
-      if (body === lastShown && config.workingEmoji) return;
+      const body = render();
+      if (body === lastShown) return;
       lastShown = body;
       void update(body).catch(() => undefined);
     }, PROGRESS_INTERVAL_MS);
@@ -137,8 +157,8 @@ export async function startSlack(config: Config, runner: TurnRunner, adapterName
         origin: `Slack #${mention.channel} thread ${threadTs}`,
         text,
         onEvent: (agentEvent) => {
-          if (agentEvent.type === "tool") activity = describeActivity(agentEvent);
-          if (agentEvent.type === "init") activity = "thinking";
+          if (agentEvent.type === "tool" || agentEvent.type === "phase") activity = describeActivity(agentEvent);
+          if (agentEvent.type === "init") activity = { emoji: "🤔", text: "thinking" };
         },
       });
       clearInterval(ticker);
