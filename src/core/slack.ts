@@ -145,18 +145,19 @@ export async function startSlack(config: Config, runner: TurnRunner, adapterName
 
     let activity: Activity =
       depth > 0 ? { emoji: "⏳", text: `queued behind ${depth}, finishing the last one first` } : { emoji: "🤔", text: "thinking" };
-    const render = () => `${activity.emoji} ${activity.text}`;
-    const placeholder = await reply(render());
+    let toolCalls = 0;
+    const elapsed = () => `${Math.round((Date.now() - startedAt) / 1000)}s · ${toolCalls} tool call${toolCalls === 1 ? "" : "s"}`;
+    const progress = () => ({
+      text: `${activity.emoji} ${activity.text}`,
+      blocks: replyBlocks(`${activity.emoji} ${activity.text}`, elapsed()),
+    });
+    const placeholder = await client.chat.postMessage({ channel: mention.channel, thread_ts: threadTs, ...progress() });
     const placeholderTs = placeholder.ts ?? "";
     const update = (body: string) => client.chat.update({ channel: mention.channel, ts: placeholderTs, text: body });
 
-    // Slack rate-limits edits, so the placeholder follows the activity at most every few seconds.
-    let lastShown = render();
+    // One edit every few seconds keeps the clock ticking and stays under Slack's edit rate limit.
     const ticker = setInterval(() => {
-      const body = render();
-      if (body === lastShown) return;
-      lastShown = body;
-      void update(body).catch(() => undefined);
+      void client.chat.update({ channel: mention.channel, ts: placeholderTs, ...progress() }).catch(() => undefined);
     }, PROGRESS_INTERVAL_MS);
 
     try {
@@ -165,6 +166,7 @@ export async function startSlack(config: Config, runner: TurnRunner, adapterName
         origin: `Slack #${mention.channel} thread ${threadTs}`,
         text,
         onEvent: (agentEvent) => {
+          if (agentEvent.type === "tool") toolCalls += 1;
           if (agentEvent.type === "tool" || agentEvent.type === "phase") activity = describeActivity(agentEvent);
           if (agentEvent.type === "init") activity = { emoji: "🤔", text: "thinking" };
         },
