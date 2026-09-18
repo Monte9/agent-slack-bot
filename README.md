@@ -16,6 +16,9 @@ backed by your own `claude login`. The core does not care which runtime answers.
 - **One session.** A session id lives in `~/.slack-agent/session.json`. Restarting the bot resumes
   it. `@bot new` starts over. `@bot status` prints the id so you can resume the same session from a
   terminal after stopping the bot.
+- **One bot.** A second copy exits at startup naming the first one's pid (`~/.slack-agent/bot.pid`),
+  so `dev` beside the service, or a copy left behind in a shell, cannot split the mentions between
+  two sessions. `slack-agent restart` stops every copy and starts one.
 - **Serial by design.** Mentions queue and run in order. The second person hears "queued behind 1".
 - **Visible progress.** Your message gets 👀 when picked up and ✅ or ❌ when done. A placeholder reply
   shows what the agent is doing right now, with an emoji per activity (📖 reading, 💻 running, 📊 Mixpanel,
@@ -104,7 +107,7 @@ shows "Slack Agent" rather than "pnpm". The bundle is signed with a Developer ID
 one is in the keychain, ad hoc otherwise. `pnpm service status` shows whether it is loaded, its pid and last exit code, and the
 log tail; `stop`, `start`, `restart`, `logs` and `uninstall` do what they say. The log is
 `~/.slack-agent/bot.log`. While changing the bot, `slack-agent stop` then `slack-agent dev`, and
-`slack-agent start` when done, so two copies never run at once.
+`slack-agent start` when done; `dev` refuses to start beside the service.
 
 ### Local checks without Slack
 

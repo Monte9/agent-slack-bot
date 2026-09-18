@@ -156,6 +156,8 @@ case "${1:-status}" in
     ;;
   restart)
     unload
+    # A copy launchd does not own (`dev`, a shell) would hold the pid lock and keep the new one from starting.
+    if pkill -f "$(pwd)/node_modules/.*tsx.* src/index.ts" 2>/dev/null; then sleep 1; fi
     launchctl bootstrap "$domain" "$plist"
     echo "restarted"
     ;;
