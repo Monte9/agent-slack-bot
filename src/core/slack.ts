@@ -62,6 +62,8 @@ export async function startSlack(config: Config, runner: TurnRunner, adapterName
     }
 
     const depth = runner.depth;
+    const startedAt = Date.now();
+    console.log(`[mention] ${mention.user} in ${mention.channel} thread ${threadTs} (queue ${depth}): ${text.slice(0, 120)}`);
     const placeholder = await reply(depth > 0 ? `Queued behind ${depth}; finishing the last one first.` : "Working on it.");
     const placeholderTs = placeholder.ts ?? "";
     const update = (body: string) => client.chat.update({ channel: mention.channel, ts: placeholderTs, text: body });
@@ -87,8 +89,13 @@ export async function startSlack(config: Config, runner: TurnRunner, adapterName
       const prefix = outcome.rotated ? "_The previous session could not be resumed, so this is a fresh one._\n\n" : "";
       await update(`${prefix}${parts[0] ?? ""}`);
       for (const part of parts.slice(1)) await reply(part);
+      console.log(
+        `[turn ${outcome.session.turns}] ${Math.round((Date.now() - startedAt) / 1000)}s, ${outcome.text.length} chars in ${parts.length} message(s)` +
+          `${outcome.isError ? ", error" : ""}${outcome.rotated ? ", fresh session" : ""}, session ${outcome.sessionId}`,
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+      console.error(`[turn failed] ${message}`);
       await update(`Something went wrong: \`${message.slice(0, 500)}\``);
     }
   });
