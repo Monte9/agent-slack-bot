@@ -5,5 +5,6 @@
   "memoryShare": ["project_*", "reference_*"],
   "adapter": "claude",
   "model": null,
-  "stateDir": "~/.agent-slack-bot"
+  "stateDir": "~/.agent-slack-bot",
+  "instructions": ""
 }

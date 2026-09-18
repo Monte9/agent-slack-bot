@@ -17,6 +17,8 @@ export interface Config {
   model: string | null;
   /** Where the bot keeps its session file, generated workspace and audit log. */
   stateDir: string;
+  /** Extra lines appended to the agent's system prompt, for house style. */
+  instructions?: string;
   slack: {
     botToken: string;
     appToken: string;
@@ -70,8 +72,10 @@ export function loadConfig(): Config {
 
   const model = raw.model == null ? null : assertString(raw, "model");
   const stateDir = resolve(expandHome(typeof raw.stateDir === "string" ? raw.stateDir : "~/.agent-slack-bot"));
+  const instructions = raw.instructions == null || raw.instructions === "" ? undefined : assertString(raw, "instructions");
 
   return {
+    ...(instructions ? { instructions } : {}),
     project,
     owner: assertString(raw, "owner"),
     allowlist: assertStringArray(raw, "allowlist"),

@@ -38,7 +38,9 @@ Requirements: Node 22+, pnpm, and a Claude Code login (`claude login`) on the ma
    Token) and `SLACK_APP_TOKEN` (Basic Information → App-Level Tokens, scope `connections:write`).
    `slack app settings` opens the right page.
 3. **Config.** Copy `config.example.json` to `config.json`. Set `project` to your repo, `owner` to your
-   Slack user id, and `allowlist` to who may talk to the bot.
+   Slack user id, and `allowlist` to who may talk to the bot. `instructions` is an optional string
+   appended to the agent's system prompt for house style. Replies are capped at about 50 words by
+   default, because Slack is instant messaging.
 4. **Run.**
 
    ```bash
