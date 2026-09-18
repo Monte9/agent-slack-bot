@@ -9,6 +9,11 @@ function summarizeInput(name: string, input: Record<string, unknown>): string {
   return text.length > 80 ? `${text.slice(0, 77)}...` : text || name;
 }
 
+/** Everything a request sent: fresh input plus what the cache served or stored. */
+function inputOf(usage: { input_tokens: number; cache_read_input_tokens?: number | null; cache_creation_input_tokens?: number | null }): number {
+  return usage.input_tokens + (usage.cache_read_input_tokens ?? 0) + (usage.cache_creation_input_tokens ?? 0);
+}
+
 export function createClaudeAdapter(options: { model: string | null }): AgentAdapter {
   async function runOnce(request: RunRequest, sessionId: string | undefined): Promise<RunResult> {
     const sdkOptions: Options = {
@@ -58,7 +63,7 @@ export function createClaudeAdapter(options: { model: string | null }): AgentAda
     let collected = "";
     let finalText: string | undefined;
     let isError = false;
-    const stats: RunStats = { durationMs: 0, costUsd: 0, toolCalls: 0, inputTokens: 0, outputTokens: 0 };
+    const stats: RunStats = { durationMs: 0, costUsd: 0, toolCalls: 0, inputTokens: 0, outputTokens: 0, contextTokens: 0 };
 
     for await (const message of query({ prompt: request.prompt, options: sdkOptions })) {
       if (message.type === "system" && message.subtype === "init") {
@@ -70,6 +75,7 @@ export function createClaudeAdapter(options: { model: string | null }): AgentAda
           credential: message.apiKeySource,
         });
       } else if (message.type === "assistant") {
+        stats.contextTokens = inputOf(message.message.usage);
         for (const block of message.message.content) {
           if (block.type === "text") {
             collected += block.text;
@@ -84,8 +90,7 @@ export function createClaudeAdapter(options: { model: string | null }): AgentAda
         resolvedSessionId = message.session_id;
         stats.durationMs = message.duration_ms;
         stats.costUsd = message.total_cost_usd;
-        stats.inputTokens =
-          message.usage.input_tokens + (message.usage.cache_read_input_tokens ?? 0) + (message.usage.cache_creation_input_tokens ?? 0);
+        stats.inputTokens = inputOf(message.usage);
         stats.outputTokens = message.usage.output_tokens;
         if (message.subtype === "success") {
           finalText = message.result;

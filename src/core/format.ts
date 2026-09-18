@@ -1,16 +1,27 @@
 /** Slack caps a section block's text at 3000 characters. */
 const SLACK_LIMIT = 2900;
 
-function tokens(n: number): string {
+export function formatTokens(n: number): string {
   return n >= 1000 ? `${(n / 1000).toFixed(n >= 10_000 ? 0 : 1)}k` : String(n);
 }
 
-/** The small grey line under a reply: `1m 19s · 25 tool calls · 52k in / 1.1k out · ~$0.41 at API rates`. */
-export function statsLine(s: { durationMs: number; toolCalls: number; inputTokens: number; outputTokens: number; costUsd: number }): string {
+/**
+ * The small grey line under a reply: `37s · 6 tool calls · 582k in / 1.5k out · 103k context · ~$1.20 at API rates`.
+ * "in" is summed over the turn's requests and tracks cost; "context" is the last request and tracks growth.
+ */
+export function statsLine(s: {
+  durationMs: number;
+  toolCalls: number;
+  inputTokens: number;
+  outputTokens: number;
+  contextTokens: number;
+  costUsd: number;
+}): string {
   const seconds = Math.round(s.durationMs / 1000);
   const time = seconds >= 60 ? `${Math.floor(seconds / 60)}m ${seconds % 60}s` : `${seconds}s`;
   const calls = `${s.toolCalls} tool call${s.toolCalls === 1 ? "" : "s"}`;
-  return `${time} · ${calls} · ${tokens(s.inputTokens)} in / ${tokens(s.outputTokens)} out · ~$${s.costUsd.toFixed(2)} at API rates`;
+  const context = s.contextTokens ? ` · ${formatTokens(s.contextTokens)} context` : "";
+  return `${time} · ${calls} · ${formatTokens(s.inputTokens)} in / ${formatTokens(s.outputTokens)} out${context} · ~$${s.costUsd.toFixed(2)} at API rates`;
 }
 
 /** Words outside code fences. Code is not prose and should not count against the cap. */

@@ -32,8 +32,11 @@ export interface RunStats {
   /** Cost at API list prices. On a subscription it is a proxy for usage, not a charge. */
   costUsd: number;
   toolCalls: number;
+  /** Summed over every API request in the run, so it grows with tool calls as well as with context. */
   inputTokens: number;
   outputTokens: number;
+  /** Input tokens of the last API request: the context the session carries into its next turn. */
+  contextTokens: number;
 }
 
 export interface RunResult {
@@ -52,6 +55,8 @@ export function addStats(a: RunStats, b: RunStats): RunStats {
     toolCalls: a.toolCalls + b.toolCalls,
     inputTokens: a.inputTokens + b.inputTokens,
     outputTokens: a.outputTokens + b.outputTokens,
+    // The later run resumed the same session, so its context is the current one; not a sum.
+    contextTokens: b.contextTokens || a.contextTokens,
   };
 }
 

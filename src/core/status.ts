@@ -1,3 +1,4 @@
+import { formatTokens } from "./format.js";
 import type { TurnRunner } from "./turn.js";
 
 function ago(date: Date | string): string {
@@ -23,6 +24,7 @@ export function statusText(runner: TurnRunner, adapterName: string): string {
       `*session* \`${session.sessionId}\``,
       `*model* ${session.model || "unknown"}`,
       `*turns* ${session.turns}, first ${ago(session.createdAt)}, last ${ago(session.lastTurnAt)}`,
+      `*context* ${session.contextTokens ? `${formatTokens(session.contextTokens)} tokens per request` : "unknown"} (\`new\` starts over)`,
       `*resume on desktop* \`claude --resume ${session.sessionId}\` from the workspace, after stopping the bot`,
     );
   } else {

@@ -14,8 +14,9 @@ backed by your own `claude login`. The core does not care which runtime answers.
 - **Socket Mode, no public URL.** The bot runs where the memory lives, on your laptop, and holds a
   WebSocket to Slack. Nothing inbound.
 - **One session.** A session id lives in `~/.slack-agent/session.json`. Restarting the bot resumes
-  it. `@bot new` starts over. `@bot status` prints the id so you can resume the same session from a
-  terminal after stopping the bot.
+  it. `@bot new` starts over. `@bot status` prints the context the session now carries per request,
+  so you can see when `new` is due, and the id so you can resume the same session from a terminal
+  after stopping the bot.
 - **One bot.** A second copy exits at startup naming the first one's pid (`~/.slack-agent/bot.pid`),
   so `dev` beside the service, or a copy left behind in a shell, cannot split the mentions between
   two sessions. `slack-agent restart` stops every copy and starts one.
@@ -23,8 +24,9 @@ backed by your own `claude login`. The core does not care which runtime answers.
 - **Visible progress.** Your message gets 👀 when picked up and ✅ or ❌ when done. A placeholder reply
   shows what the agent is doing right now, with an emoji per activity (📖 reading, 💻 running, 📊 Mixpanel,
   ✂️ revising), and becomes the answer when it finishes. A small grey line under each answer gives the
-  time, tool calls, tokens and cost at API list prices (on a subscription that is a usage proxy, not a
-  charge).
+  time, tool calls, tokens in and out, the context the session now carries, and cost at API list
+  prices (on a subscription that is a usage proxy, not a charge). Tokens in are summed over the
+  turn's requests, one per tool call, so they track cost; context is the last request and tracks growth.
 - **Shared-scope memory.** The session runs in a generated workspace whose memory directory holds
   symlinks to only the memory files matching `memoryShare` (by default `project_*` and `reference_*`).
   Files that don't match are never loaded, so no prompt can reveal them. Memory is read-only from Slack.

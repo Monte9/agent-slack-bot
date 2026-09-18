@@ -167,7 +167,7 @@ export class TurnRunner {
         }
       }
 
-      const session = this.store.recordTurn(result.sessionId, model);
+      const session = this.store.recordTurn(result.sessionId, model, result.stats.contextTokens);
       return { ...result, session, revised };
     });
   }
