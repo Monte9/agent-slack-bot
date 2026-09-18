@@ -46,31 +46,43 @@ EOF
 
 loaded() { launchctl print "$domain/$label" >/dev/null 2>&1; }
 
+# bootout returns before the job is gone; a bootstrap in that window fails with "Input/output error".
+unload() {
+  loaded || return 0
+  launchctl bootout "$domain/$label"
+  for _ in $(seq 1 40); do
+    loaded || return 0
+    sleep 0.25
+  done
+  echo "still loaded after 10s" >&2
+  return 1
+}
+
 case "${1:-status}" in
   install)
     write_plist
-    if loaded; then launchctl bootout "$domain/$label" 2>/dev/null || true; fi
+    unload
     launchctl bootstrap "$domain" "$plist"
     echo "installed $plist and started; it will start at every login"
     ;;
   uninstall)
-    if loaded; then launchctl bootout "$domain/$label"; fi
+    unload
     rm -f "$plist"
     echo "removed $label"
     ;;
   start)
-    loaded || { echo "not installed; run: pnpm service install" >&2; exit 1; }
-    launchctl kickstart "$domain/$label"
+    [ -f "$plist" ] || { echo "not installed; run: pnpm service install" >&2; exit 1; }
+    if loaded; then launchctl kickstart "$domain/$label"; else launchctl bootstrap "$domain" "$plist"; fi
     echo "started"
     ;;
   stop)
-    loaded || { echo "not installed" >&2; exit 1; }
-    # bootout stops it and keeps the plist; install or start loads it again.
-    launchctl bootout "$domain/$label"
+    loaded || { echo "not loaded" >&2; exit 1; }
+    # Unloading stops it and keeps the plist; start loads it again.
+    unload
     echo "stopped; run 'pnpm service start' to load it again"
     ;;
   restart)
-    "$0" stop >/dev/null 2>&1 || true
+    unload
     launchctl bootstrap "$domain" "$plist"
     echo "restarted"
     ;;
