@@ -17,8 +17,30 @@ export interface TurnRequest {
 
 export interface TurnOutcome extends RunResult {
   session: SessionRecord;
-  /** True when the first reply was over the word cap and a second pass shortened it. */
-  condensed: boolean;
+  /** True when the first reply failed a check and a second pass replaced it. */
+  revised: boolean;
+}
+
+const SOURCE_TOOLS = new Set(["WebFetch", "WebSearch"]);
+
+function sourceOf(toolName: string): string | undefined {
+  const mcp = /^mcp__(?:claude_ai_)?([^_]+)__/.exec(toolName);
+  if (mcp) return mcp[1];
+  return SOURCE_TOOLS.has(toolName) ? "the web" : undefined;
+}
+
+/**
+ * Checks a reply must pass before it is posted. The model reuses an earlier reply
+ * from context no matter what the prompt says, so these are enforced here.
+ */
+function reviewReply(text: string, sources: Set<string>, maxWords: number): string[] {
+  const problems: string[] = [];
+  const words = wordCount(text);
+  if (words > maxWords) problems.push(`It is ${words} words; the limit is ${maxWords}. Keep the finding and what to do about it.`);
+  if (sources.size > 0 && !/https?:\/\//.test(text)) {
+    problems.push(`You consulted ${[...sources].join(", ")} but gave no link. Add the link to what you checked, as a markdown link with a short label.`);
+  }
+  return problems;
 }
 
 function systemPromptAppend(config: Omit<Config, "slack">, botName: string): string {
@@ -95,8 +117,13 @@ export class TurnRunner {
         auditPath: auditPathFor(this.config.stateDir),
       });
       let model = this.store.read()?.model ?? "";
+      const sources = new Set<string>();
       const onEvent = (event: AgentEvent) => {
         if (event.type === "init") model = event.model;
+        if (event.type === "tool") {
+          const source = sourceOf(event.name);
+          if (source) sources.add(source);
+        }
         request.onEvent?.(event);
       };
       const base = {
@@ -113,27 +140,25 @@ export class TurnRunner {
         sessionId: this.store.read()?.sessionId,
       });
 
-      // The model will echo a long earlier reply from context no matter what the prompt says,
-      // so the cap is enforced here with one more pass.
-      let condensed = false;
-      const words = wordCount(result.text);
-      if (!result.isError && words > this.config.maxReplyWords) {
-        onEvent({ type: "phase", name: "condensing" });
-        const short = await this.adapter.run({
+      let revised = false;
+      const problems = result.isError ? [] : reviewReply(result.text, sources, this.config.maxReplyWords);
+      if (problems.length > 0) {
+        onEvent({ type: "phase", name: "revising" });
+        const fixed = await this.adapter.run({
           ...base,
           prompt:
-            `[system] That reply was ${words} words. Slack replies must be under ${this.config.maxReplyWords} words. ` +
-            "Say it again in under that many words: the finding, then what to do about it. No preamble, no apology.",
+            "[system] That reply is not posted yet. Fix these, then send the corrected reply and nothing else:\n" +
+            problems.map((p) => `- ${p}`).join("\n"),
           sessionId: result.sessionId,
         });
-        if (!short.isError && wordCount(short.text) < words) {
-          result = { ...short, rotated: result.rotated };
-          condensed = true;
+        if (!fixed.isError && fixed.text.trim()) {
+          result = { ...fixed, rotated: result.rotated };
+          revised = true;
         }
       }
 
       const session = this.store.recordTurn(result.sessionId, model);
-      return { ...result, session, condensed };
+      return { ...result, session, revised };
     });
   }
 }

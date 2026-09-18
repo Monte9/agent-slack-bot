@@ -37,7 +37,7 @@ function basename(path: string): string {
 /** An emoji and one short, human line for the placeholder, from an agent event. */
 export function describeActivity(event: Extract<AgentEvent, { type: "tool" | "phase" }>): Activity {
   if (event.type === "phase") {
-    return event.name === "condensing" ? { emoji: "✂️", text: "shortening the reply" } : { emoji: "🤔", text: "thinking" };
+    return event.name === "revising" ? { emoji: "✂️", text: "revising the reply" } : { emoji: "🤔", text: "thinking" };
   }
   const { name, summary } = event;
   const mcp = /^mcp__(?:claude_ai_)?([^_]+)__(.+)$/.exec(name);
@@ -171,7 +171,7 @@ export async function startSlack(config: Config, runner: TurnRunner, adapterName
       await react(outcome.isError ? "x" : "white_check_mark");
       console.log(
         `[turn ${outcome.session.turns}] ${Math.round((Date.now() - startedAt) / 1000)}s, ${outcome.text.length} chars in ${parts.length} message(s)` +
-          `${outcome.condensed ? ", condensed" : ""}${outcome.isError ? ", error" : ""}${outcome.rotated ? ", fresh session" : ""}, session ${outcome.sessionId}`,
+          `${outcome.revised ? ", revised" : ""}${outcome.isError ? ", error" : ""}${outcome.rotated ? ", fresh session" : ""}, session ${outcome.sessionId}`,
       );
     } catch (error) {
       clearInterval(ticker);

@@ -19,7 +19,7 @@ backed by your own `claude login`. The core does not care which runtime answers.
 - **Serial by design.** Mentions queue and run in order. The second person hears "queued behind 1".
 - **Visible progress.** Your message gets 👀 when picked up and ✅ or ❌ when done. A placeholder reply
   shows what the agent is doing right now, with an emoji per activity (📖 reading, 💻 running, 📊 Mixpanel,
-  ✂️ shortening), and becomes the answer when it finishes.
+  ✂️ revising), and becomes the answer when it finishes.
 - **Shared-scope memory.** The session runs in a generated workspace whose memory directory holds
   symlinks to only the memory files matching `memoryShare` (by default `project_*` and `reference_*`).
   Files that don't match are never loaded, so no prompt can reveal them. Memory is read-only from Slack.
@@ -43,8 +43,9 @@ Requirements: Node 22+, pnpm, and a Claude Code login (`claude login`) on the ma
    Token) and `SLACK_APP_TOKEN` (Basic Information → App-Level Tokens, scope `connections:write`).
    `slack app settings` opens the right page.
 3. **Config.** Copy `config.example.json` to `config.json`. Set `project` to your repo, `owner` to your
-   Slack user id, and `allowlist` to who may talk to the bot. Slack is instant messaging, so replies over
-   `maxReplyWords` (default 80) are sent back to the agent once to be shortened.
+   Slack user id, and `allowlist` to who may talk to the bot. Slack is instant messaging, so a reply is
+   checked before it is posted: over `maxReplyWords` (default 80), or no link after consulting an external
+   source, and it goes back to the agent once for a corrected version.
 4. **House style**, optional. Write `~/.agent-slack-bot/instructions.md` (or point `instructionsFile`
    elsewhere): link formats, URL patterns for your tools, anything about voice. It is appended to the
    agent's system prompt and re-read on every turn, so edits apply without a restart. The generic rules,

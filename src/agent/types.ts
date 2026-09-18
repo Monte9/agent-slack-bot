@@ -11,7 +11,7 @@ export type AgentEvent =
   | { type: "init"; sessionId: string; model: string; credential: string }
   | { type: "text"; text: string }
   | { type: "tool"; name: string; summary: string }
-  | { type: "phase"; name: "thinking" | "condensing" }
+  | { type: "phase"; name: "thinking" | "revising" }
   | { type: "stderr"; text: string };
 
 export interface RunRequest {
