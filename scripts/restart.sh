@@ -19,16 +19,19 @@ fi
 
 marker="[restart $(date -u +%H:%M:%SZ)]"
 echo "$marker" >> "$log"
-nohup pnpm start >> "$log" 2>&1 &
+nohup pnpm start >> "$log" 2>&1 < /dev/null &
+disown
 echo "started pid $!"
 
+# Only lines after this run's marker count, so an older connect line cannot satisfy the check.
+since_marker() { tail -n +"$(grep -nF "$marker" "$log" | tail -1 | cut -d: -f1)" "$log"; }
 for _ in $(seq 1 60); do
-  if tail -n 20 "$log" | grep -q "connected over Socket Mode"; then
-    tail -n 1 "$log"
+  if since_marker | grep -q "connected over Socket Mode"; then
+    since_marker | tail -n 1
     exit 0
   fi
-  if tail -n 20 "$log" | grep -qE "ELIFECYCLE|Error:"; then
-    tail -n 20 "$log"
+  if since_marker | grep -qE "ELIFECYCLE|Error:"; then
+    since_marker
     exit 1
   fi
   sleep 0.5
