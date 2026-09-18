@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# The slack-agent command. Service commands go to launchd; the rest run the bot in the foreground.
+#   slack-agent start|stop|restart|status|logs   the background service
+#   slack-agent install|uninstall                 add or remove the login item
+#   slack-agent dev                               run in the foreground with hot reload (stop the service first)
+#   slack-agent ask "question"                    one turn in the bot's session, without Slack
+#   slack-agent scope                             rebuild the workspace and list the memory it shares
+set -euo pipefail
+root="$(cd "$(dirname "$(readlink "$0" || echo "$0")")/.." && pwd)"
+cd "$root"
+
+case "${1:-}" in
+  start|stop|restart|status|logs|install|uninstall)
+    exec bash scripts/service.sh "$1"
+    ;;
+  dev)
+    exec pnpm dev
+    ;;
+  ask|scope)
+    exec pnpm -s "$1" "${@:2}"
+    ;;
+  *)
+    sed -n '2,8p' "$0" | sed 's/^# \{0,3\}//'
+    exit 2
+    ;;
+esac

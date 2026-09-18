@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Stop every running instance of this bot, then start exactly one and wait for it to connect.
-# Usage: scripts/restart.sh [logfile]   (default: $STATE_DIR/bot.log, STATE_DIR defaults to ~/.agent-slack-bot)
+# Usage: scripts/restart.sh [logfile]   (default: $STATE_DIR/bot.log, STATE_DIR defaults to ~/.slack-agent)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-state_dir="${STATE_DIR:-$HOME/.agent-slack-bot}"
+state_dir="${STATE_DIR:-$HOME/.slack-agent}"
 log="${1:-$state_dir/bot.log}"
 mkdir -p "$state_dir"
 

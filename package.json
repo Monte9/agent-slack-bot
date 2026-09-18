@@ -1,11 +1,14 @@
 {
-  "name": "agent-slack-bot",
+  "name": "slack-agent",
   "version": "0.1.0",
   "description": "A Slack bot that gives a local coding agent, and its memory, a persistent handle in your workspace.",
   "type": "module",
   "private": true,
   "license": "MIT",
-  "repository": "github:monte9/agent-slack-bot",
+  "repository": "github:monte9/slack-agent",
+  "bin": {
+    "slack-agent": "scripts/slack-agent"
+  },
   "engines": {
     "node": ">=22"
   },

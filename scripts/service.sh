@@ -9,12 +9,12 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-label="com.agent-slack-bot"
+label="com.slack-agent"
 plist="$HOME/Library/LaunchAgents/$label.plist"
-state_dir="${STATE_DIR:-$HOME/.agent-slack-bot}"
+state_dir="${STATE_DIR:-$HOME/.slack-agent}"
 log="$state_dir/bot.log"
 domain="gui/$(id -u)"
-app_name="agent-slack-bot"
+app_name="slack-agent"
 # What System Settings > Login Items calls the background item.
 app_display="${APP_DISPLAY_NAME:-Slack Agent}"
 app="$HOME/Applications/$app_name.app"

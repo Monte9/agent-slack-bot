@@ -5,7 +5,7 @@
   "memoryShare": ["project_*", "reference_*"],
   "adapter": "claude",
   "model": null,
-  "stateDir": "~/.agent-slack-bot",
-  "instructionsFile": "~/.agent-slack-bot/instructions.md",
+  "stateDir": "~/.slack-agent",
+  "instructionsFile": "~/.slack-agent/instructions.md",
   "maxReplyWords": 80
 }

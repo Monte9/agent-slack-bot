@@ -1,4 +1,4 @@
-# agent-slack-bot
+# slack-agent
 
 A Slack bot that gives a local coding agent, and its memory, a persistent handle in your workspace.
 
@@ -13,7 +13,7 @@ backed by your own `claude login`. The core does not care which runtime answers.
 
 - **Socket Mode, no public URL.** The bot runs where the memory lives, on your laptop, and holds a
   WebSocket to Slack. Nothing inbound.
-- **One session.** A session id lives in `~/.agent-slack-bot/session.json`. Restarting the bot resumes
+- **One session.** A session id lives in `~/.slack-agent/session.json`. Restarting the bot resumes
   it. `@bot new` starts over. `@bot status` prints the id so you can resume the same session from a
   terminal after stopping the bot.
 - **Serial by design.** Mentions queue and run in order. The second person hears "queued behind 1".
@@ -26,7 +26,7 @@ backed by your own `claude login`. The core does not care which runtime answers.
   symlinks to only the memory files matching `memoryShare` (by default `project_*` and `reference_*`).
   Files that don't match are never loaded, so no prompt can reveal them. Memory is read-only from Slack.
 - **Allowlist and owner.** Only Slack users on the allowlist get answers. Privileged actions are the
-  owner's alone. Every denial is one line in `~/.agent-slack-bot/audit.jsonl`.
+  owner's alone. Every denial is one line in `~/.slack-agent/audit.jsonl`.
 
 ## Setup
 
@@ -48,7 +48,7 @@ Requirements: Node 22+, pnpm, and a Claude Code login (`claude login`) on the ma
    Slack user id, and `allowlist` to who may talk to the bot. Slack is instant messaging, so a reply is
    checked before it is posted: over `maxReplyWords` (default 80), or no link after consulting an external
    source, and it goes back to the agent once for a corrected version.
-4. **House style**, optional. Write `~/.agent-slack-bot/instructions.md` (or point `instructionsFile`
+4. **House style**, optional. Write `~/.slack-agent/instructions.md` (or point `instructionsFile`
    elsewhere): link formats, URL patterns for your tools, anything about voice. It is appended to the
    agent's system prompt and re-read on every turn, so edits apply without a restart. The generic rules,
    such as "link what you cite", are in code; this file is for what is specific to your instance.
@@ -63,20 +63,33 @@ Requirements: Node 22+, pnpm, and a Claude Code login (`claude login`) on the ma
    restarts on every source change, and the session resumes from disk, so there is never an old
    process serving stale code. A save mid-turn does cut that turn short.
 
+### The `slack-agent` command
+
+Put the command on your PATH once, then everything below is `slack-agent <verb>`:
+
+```bash
+pnpm link --global      # or: ln -s "$PWD/scripts/slack-agent" ~/.local/bin/slack-agent
+```
+
+`slack-agent start|stop|restart|status|logs` drive the background service, `install|uninstall`
+add or remove it, `dev` runs the bot in the foreground with hot reload, `ask "question"` runs one
+turn without Slack, `scope` rebuilds the shared memory workspace. `pnpm service <verb>` and
+`pnpm dev|ask|scope` do the same from inside the repo.
+
 ### Run it unattended (macOS)
 
 ```bash
-pnpm service install
+slack-agent install
 ```
 
 That writes a launchd user agent and loads it: the bot starts now and at every login, and restarts
-if it dies. It also builds a small app bundle at `~/Applications/agent-slack-bot.app`, shown in
+if it dies. It also builds a small app bundle at `~/Applications/slack-agent.app`, shown in
 System Settings › Login Items as "Slack Agent" (override with `APP_DISPLAY_NAME`) with the bot's
 Slack avatar as its icon, rather than as "pnpm". The bundle is signed with a Developer ID or Apple Development certificate when
 one is in the keychain, ad hoc otherwise. `pnpm service status` shows whether it is loaded, its pid and last exit code, and the
 log tail; `stop`, `start`, `restart`, `logs` and `uninstall` do what they say. The log is
-`~/.agent-slack-bot/bot.log`. While changing the bot, `pnpm service stop` then `pnpm dev`, and
-`pnpm service start` when done, so two copies never run at once.
+`~/.slack-agent/bot.log`. While changing the bot, `slack-agent stop` then `slack-agent dev`, and
+`slack-agent start` when done, so two copies never run at once.
 
 ### Local checks without Slack
 

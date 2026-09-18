@@ -73,7 +73,7 @@ export function loadConfig(): Config {
   if (adapter !== "claude") throw new Error(`config.json: unknown adapter "${adapter}"`);
 
   const model = raw.model == null ? null : assertString(raw, "model");
-  const stateDir = resolve(expandHome(typeof raw.stateDir === "string" ? raw.stateDir : "~/.agent-slack-bot"));
+  const stateDir = resolve(expandHome(typeof raw.stateDir === "string" ? raw.stateDir : "~/.slack-agent"));
   const instructionsFile = resolve(
     expandHome(typeof raw.instructionsFile === "string" && raw.instructionsFile ? raw.instructionsFile : join(stateDir, "instructions.md")),
   );
