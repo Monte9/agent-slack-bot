@@ -23,13 +23,13 @@ function matcher(patterns: string[]): (name: string) => boolean {
   return (name) => regexes.some((r) => r.test(name));
 }
 
-/** Keep index lines whose link target is shared; drop headers left with no entries. */
+/** Keep index lines whose link target is shared; drop sections left with no entries. */
 function filterIndex(index: string, isShared: (name: string) => boolean): string {
   const lines = index.split("\n");
   const out: string[] = [];
   let pendingHeader: string | undefined;
   for (const line of lines) {
-    if (/^#{1,6}\s/.test(line)) {
+    if (/^#{2,6}\s/.test(line)) {
       pendingHeader = line;
       continue;
     }

@@ -23,6 +23,7 @@
     "@slack/bolt": "^5.1.0"
   },
   "devDependencies": {
+    "@slack/cli-hooks": "^2.0.0",
     "@types/node": "^26.6.1",
     "tsx": "^4.23.13",
     "typescript": "^7.0.2"

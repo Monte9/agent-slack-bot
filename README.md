@@ -27,11 +27,16 @@ backed by your own `claude login`. The core does not care which runtime answers.
 
 Requirements: Node 22+, pnpm, and a Claude Code login (`claude login`) on the machine that runs the bot.
 
-1. **Create the Slack app** from [`slack-manifest.yaml`](slack-manifest.yaml): at
-   [api.slack.com/apps](https://api.slack.com/apps) choose *Create New App → From a manifest*, paste the
-   file, and install the app to your workspace. Rename it if you like.
+1. **Create the Slack app** from [`manifest.json`](manifest.json). Rename it first if you like.
+   Either way works:
+   - With the [Slack CLI](https://docs.slack.dev/tools/slack-cli): `slack login`, then
+     `slack app install --environment deployed` from this directory. The CLI reads the manifest through
+     `.slack/hooks.json` and records the app id in `.slack/apps.json` (gitignored).
+   - In the browser: at [api.slack.com/apps](https://api.slack.com/apps) choose *Create New App → From a
+     manifest*, paste the file, and install the app to your workspace.
 2. **Tokens.** Copy `.env.example` to `.env`. Fill `SLACK_BOT_TOKEN` (OAuth & Permissions → Bot User OAuth
    Token) and `SLACK_APP_TOKEN` (Basic Information → App-Level Tokens, scope `connections:write`).
+   `slack app settings` opens the right page.
 3. **Config.** Copy `config.example.json` to `config.json`. Set `project` to your repo, `owner` to your
    Slack user id, and `allowlist` to who may talk to the bot.
 4. **Run.**
