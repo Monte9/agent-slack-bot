@@ -15,7 +15,34 @@ export function createClaudeAdapter(options: { model: string | null }): AgentAda
       cwd: request.cwd,
       additionalDirectories: request.additionalDirectories,
       settingSources: ["user", "project"],
+      // Never inherit the owner's desktop permission mode; the gate is the only policy here.
+      permissionMode: "default",
       systemPrompt: { type: "preset", preset: "claude_code", append: request.systemPromptAppend },
+      // Runs on every tool call, before allow rules, so a denial cannot be bypassed by settings.
+      hooks: {
+        PreToolUse: [
+          {
+            hooks: [
+              async (input) => {
+                if (input.hook_event_name !== "PreToolUse") return {};
+                const decision = request.gate({
+                  toolName: input.tool_name,
+                  input: (input.tool_input ?? {}) as Record<string, unknown>,
+                });
+                if (decision.allow) return {};
+                return {
+                  hookSpecificOutput: {
+                    hookEventName: "PreToolUse",
+                    permissionDecision: "deny",
+                    permissionDecisionReason: decision.reason,
+                  },
+                };
+              },
+            ],
+          },
+        ],
+      },
+      // Runs only for calls that would otherwise prompt a human; the gate answers instead.
       canUseTool: async (toolName, input) => {
         const decision = request.gate({ toolName, input });
         return decision.allow
